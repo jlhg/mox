@@ -24,6 +24,4 @@ Download comics books:
 bin/mox -c config/config.toml dl -i <id>
 ```
 
-```
-id: The comics ID on website's URL
-```
+- `id`: The comics ID on website's URL
