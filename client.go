@@ -10,9 +10,14 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/publicsuffix"
+)
+
+const (
+	taskChBufferSize = 1024
 )
 
 var (
@@ -32,6 +37,22 @@ type Book struct {
 	MobiVIP2Path string
 	EpubVIPPath  string
 	EpubVIP2Path string
+}
+
+func WatchTask(ctx context.Context) {
+	taskCh := ctx.Value("taskCh").(chan func())
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		for f := range taskCh {
+			f()
+		}
+	}
 }
 
 func NewClient() (client *http.Client, err error) {
@@ -201,43 +222,65 @@ func (c *MoxClient) GetComics(id int) (comics *Comics, err error) {
 
 func (c *MoxClient) DownloadComics(id int) (err error) {
 	var comics *Comics
+	var cancel context.CancelFunc
+
 	config := c.Ctx.Value("config").(*Config)
+	wg := new(sync.WaitGroup)
+
+	c.Ctx, cancel = context.WithCancel(c.Ctx)
+	defer cancel()
+
+	taskCh := make(chan func(), taskChBufferSize)
+	c.Ctx = context.WithValue(c.Ctx, "taskCh", taskCh)
+
+	for i := 0; i < config.Mox.Transfers; i++ {
+		go WatchTask(c.Ctx)
+	}
 
 	comics, err = c.GetComics(id)
 	if err != nil {
 		return
 	}
 
-	for _, book := range comics.Books {
-		var f *os.File
-		var u string
-		var resp *http.Response
+	for i := 0; i < len(comics.Books); i++ {
+		book := comics.Books[i]
 
-		fileName := fmt.Sprintf(
-			"%s/[Mox][%s]%s.kepub.epub",
-			config.Mox.DownloadPath,
-			comics.Title,
-			book.Name,
-		)
+		wg.Add(1)
+		taskCh <- func() {
+			defer wg.Done()
 
-		u = fmt.Sprintf("%s/%s", moxBaseURL, book.EpubVIP2Path)
-		fmt.Println(fmt.Sprintf("download book from %s to %s...", u, fileName))
+			var f *os.File
+			var u string
+			var resp *http.Response
 
-		f, err = os.Create(fileName)
-		if err != nil {
-			return
+			fileName := fmt.Sprintf(
+				"%s/[Mox][%s]%s.kepub.epub",
+				config.Mox.DownloadPath,
+				comics.Title,
+				book.Name,
+			)
+
+			u = fmt.Sprintf("%s/%s", moxBaseURL, book.EpubVIP2Path)
+			fmt.Println(fmt.Sprintf("download book from %s to %s...", u, fileName))
+
+			f, err = os.Create(fileName)
+			if err != nil {
+				return
+			}
+
+			resp, err = c.Get(u)
+			if err != nil {
+				return
+			}
+			defer resp.Body.Close()
+
+			_, err = io.Copy(f, resp.Body)
+
+			defer f.Close()
 		}
-
-		resp, err = c.Get(u)
-		if err != nil {
-			return
-		}
-		defer resp.Body.Close()
-
-		_, err = io.Copy(f, resp.Body)
-
-		defer f.Close()
 	}
+
+	wg.Wait()
 
 	return
 }

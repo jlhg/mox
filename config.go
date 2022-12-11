@@ -32,6 +32,7 @@ type MoxConfig struct {
 	Email        string `toml:"email"`
 	Password     string `toml:"password"`
 	DownloadPath string `toml:"download_path"`
+	Transfers    int    `toml:"transfers"`
 }
 
 func NewConfig(path string) (config *Config, err error) {

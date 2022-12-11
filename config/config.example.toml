@@ -2,3 +2,4 @@
 email = ""
 password = ""
 download_path = "download"
+transfers = 5
