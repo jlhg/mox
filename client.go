@@ -267,6 +267,7 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 			if err != nil {
 				return
 			}
+			defer f.Close()
 
 			retry := 0
 
@@ -288,8 +289,6 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book.", fileName))
 				}
 			}
-
-			defer f.Close()
 		}
 	}
 
