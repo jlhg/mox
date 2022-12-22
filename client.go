@@ -260,21 +260,34 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 				book.Name,
 			)
 
-			u = fmt.Sprintf("%s/%s", moxBaseURL, book.EpubVIP2Path)
-			fmt.Println(fmt.Sprintf("download book from %s to %s...", u, fileName))
+			u = fmt.Sprintf("%s/%s", moxBaseURL, book.EpubVIPPath)
+			fmt.Println(fmt.Sprintf("[INFO] Download book from %s to %s...", u, fileName))
 
 			f, err = os.Create(fileName)
 			if err != nil {
 				return
 			}
 
+			retry := 0
+
+		DownloadFile:
 			resp, err = c.Get(u)
 			if err != nil {
 				return
 			}
 			defer resp.Body.Close()
 
-			_, err = io.Copy(f, resp.Body)
+			if resp.StatusCode == http.StatusOK && strings.Contains(resp.Header.Get("Content-Type"), "application/octet-stream") {
+				_, err = io.Copy(f, resp.Body)
+			} else {
+				retry++
+				if retry <= 5 {
+					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Retry. [retry=%d]", fileName, retry))
+					goto DownloadFile
+				} else {
+					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book.", fileName))
+				}
+			}
 
 			defer f.Close()
 		}
