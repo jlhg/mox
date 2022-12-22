@@ -261,7 +261,7 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 				book.Name,
 			)
 
-			u = fmt.Sprintf("%s/%s", moxBaseURL, book.EpubVIPPath)
+			u = fmt.Sprintf("%s/%s", moxBaseURL, book.EpubVIP2Path)
 			fmt.Println(fmt.Sprintf("[INFO] Download book from %s to %s...", u, fileName))
 
 			f, err = os.Create(fileName)
