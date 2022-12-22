@@ -18,6 +18,7 @@ import (
 
 const (
 	taskChBufferSize = 1024
+	maxRetry = 5
 )
 
 var (
@@ -282,11 +283,11 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 				_, err = io.Copy(f, resp.Body)
 			} else {
 				retry++
-				if retry <= 5 {
+				if retry > maxRetry {
+					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book. [retry=%d]", fileName, retry))
+				} else {
 					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Retry. [retry=%d]", fileName, retry))
 					goto DownloadFile
-				} else {
-					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book.", fileName))
 				}
 			}
 		}
