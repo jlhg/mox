@@ -282,12 +282,21 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 			if resp.StatusCode == http.StatusOK && strings.Contains(resp.Header.Get("Content-Type"), "application/octet-stream") {
 				_, err = io.Copy(f, resp.Body)
 			} else {
-				retry++
-				if retry > maxRetry {
-					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book. [retry=%d]", fileName, retry))
+				if resp.StatusCode == 403 {
+					body, err := io.ReadAll(resp.Body)
+					if err != nil {
+						return
+					}
+
+					fmt.Println(string(body))
 				} else {
-					fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Retry. [retry=%d]", fileName, retry))
-					goto DownloadFile
+					retry++
+					if retry > maxRetry {
+						fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book. [retry=%d]", fileName, retry))
+					} else {
+						fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Retry. [retry=%d]", fileName, retry))
+						goto DownloadFile
+					}
 				}
 			}
 		}
