@@ -18,7 +18,7 @@ import (
 
 const (
 	taskChBufferSize = 1024
-	maxRetry = 5
+	maxRetry         = 5
 )
 
 var (
