@@ -282,8 +282,9 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 			if resp.StatusCode == http.StatusOK && strings.Contains(resp.Header.Get("Content-Type"), "application/octet-stream") {
 				_, err = io.Copy(f, resp.Body)
 			} else {
-				if resp.StatusCode == 403 {
-					body, err := io.ReadAll(resp.Body)
+				if resp.StatusCode == http.StatusForbidden {
+					var body []byte
+					body, err = io.ReadAll(resp.Body)
 					if err != nil {
 						return
 					}
