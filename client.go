@@ -1,6 +1,7 @@
 package mox
 
 import (
+	"archive/zip"
 	"context"
 	"fmt"
 	"io"
@@ -281,6 +282,27 @@ func (c *MoxClient) DownloadComics(id int) (err error) {
 
 			if resp.StatusCode == http.StatusOK && strings.Contains(resp.Header.Get("Content-Type"), "application/octet-stream") {
 				_, err = io.Copy(f, resp.Body)
+				if err != nil {
+					retry++
+					if retry > maxRetry {
+						fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book. [err=%s] [retry=%d]", fileName, err.Error(), retry))
+						return
+					} else {
+						fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Retry. [err=%s] [retry=%d]", fileName, err.Error(), retry))
+						goto DownloadFile
+					}
+				}
+
+				_, err = zip.OpenReader(fileName)
+				if err != nil {
+					retry++
+					if retry > maxRetry {
+						fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Ignored this book. [err=%s] [retry=%d]", fileName, err.Error(), retry))
+					} else {
+						fmt.Println(fmt.Sprintf("[ERROR] Download book failed: %s. Retry. [err=%s] [retry=%d]", fileName, err.Error(), retry))
+						goto DownloadFile
+					}
+				}
 			} else {
 				if resp.StatusCode == http.StatusForbidden {
 					var body []byte
