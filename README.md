@@ -1,5 +1,7 @@
 # mox - Comics downloader for Mox.moe
 
+**Note: This program is currently not working on the website.**
+
 ## Installation
 
 ```
